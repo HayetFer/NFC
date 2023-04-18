@@ -43,14 +43,21 @@ public class MainActivity extends AppCompatActivity {
     //Bitmap bmp, scaledbmp;
     NfcAdapter nfcAdapter;
     PendingIntent pendingIntent;
-    static StringBuilder sb = new StringBuilder();
+    static StringBuilder[] sb = new StringBuilder[400];
+    static int indexSB;
     final static String TAG = "nfc_test";
     DBHelper DB;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        //Initialise NfcAdapter
+        //---------------------------------------------------Partie NFC
+        //Initialiser les nfc
+        indexSB=0;
+        for (int i = 0; i < sb.length; i++) {
+            sb[i] = new StringBuilder();
+        }
+        //Verifier que le capteur NFC marche
         nfcAdapter = NfcAdapter.getDefaultAdapter(this);
         if (nfcAdapter == null){
             Toast.makeText(this,"NO NFC Capabilities",
@@ -58,32 +65,37 @@ public class MainActivity extends AppCompatActivity {
             finish();
         }
         pendingIntent = PendingIntent.getActivity(this,0,new Intent(this,this.getClass()).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP),0);
-        //-----------------------------------------------------------------------------------------------------------!
+        //-----------------------------------------------------------------------------------------------------------!Partie BDD
         DB = new DBHelper(this);
         DB.deleteAllData();
-        ajout(DB, "Hayet3", "Hex 67f 65R fG");
+        //----------------------------------AJOUT DES ELEVES
+        ajout(DB, "Hayet Ferahi", "04 34 59 aa 7e 67 80");
         Cursor cursor = DB.getData();
         showData(cursor);
-        //-----------------------------------------------------------------------------------------------------------!
+        //-----------------------------------------------------------------------------------------------------------!Partie PDF
         creerpdf = findViewById(R.id.button);
         if (checkPermission()) {
             Toast.makeText(this, "Permission Accordée !", Toast.LENGTH_SHORT).show();
         } else {
             requestPermission();
         }
+
         creerpdf.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if(sb.length()!=0){
-                    present(DB);
-                    generatePDF();
+                //Mettre présent à tous ceux qui ont étés scannés
+                if(sb.length!=0){
+                    for(int i = 0 ;i< sb.length && sb[i].length() > 0; i++){
+                        present(DB, sb[i].toString());
+                    }
                     Cursor cursor2 = DB.getData();
+                    generatePDF(cursor2);
                     showData(cursor2);
                 }
             }
         });
     }
-
+    //--------------------------------------------Partie BDD
     public void showData(Cursor cursor){
         if (cursor.getCount() == 0) {
             Toast.makeText(getApplicationContext(), "No data found", Toast.LENGTH_SHORT).show();
@@ -97,23 +109,25 @@ public class MainActivity extends AppCompatActivity {
             }
         }
     }
-
-    public void present(DBHelper DB){
-        boolean result = DB.updateUserPresentByIdentifiant("Hex 67f 65R fG");
+    //Mettre présent à vrai avec l'identifiant
+    public void present(DBHelper DB, String identifiant){
+        boolean result = DB.updateUserPresentByIdentifiant(identifiant);
         if (result) {
             Toast.makeText(this, "Data updated successfully", Toast.LENGTH_SHORT).show();
         } else {
-            Toast.makeText(this, "Failed to update data2", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Failed to update data", Toast.LENGTH_SHORT).show();
         }
     }
+    //Ajouter des élèves à la bdd
     public void ajout(DBHelper DB,String nom, String identifiant){
         Boolean isUpdated = DB.insertuserdata(nom, identifiant, false);
         if (isUpdated) {
             Toast.makeText(getApplicationContext(), "Data updated successfully", Toast.LENGTH_SHORT).show();
         } else {
-            Toast.makeText(getApplicationContext(), "Failed to update data", Toast.LENGTH_SHORT).show();
+            Toast.makeText(getApplicationContext(), "Failed to add data", Toast.LENGTH_SHORT).show();
         }
     }
+    //----------------------------------------------------NFC Lecture
     @Override
     protected void onResume() {
         super.onResume();
@@ -137,7 +151,6 @@ public class MainActivity extends AppCompatActivity {
         resolveIntent(intent);
     }
 
-
     private void resolveIntent(Intent intent) {
         String action = intent.getAction();
         if (NfcAdapter.ACTION_TAG_DISCOVERED.equals(action)
@@ -149,30 +162,41 @@ public class MainActivity extends AppCompatActivity {
             detectTagData(tag);
         }
     }
+    //Ajouter dans un tableau les identifiants présents
     private String detectTagData(Tag tag) {
         byte[] id = tag.getId();
         String reversedHex = toReversedHex(id);
-        if (!sb.toString().contains(reversedHex)) {
-            sb.append("ID (reversed hex): ").append(reversedHex).append('\n');
-            Log.v("test",sb.toString());
+        boolean isDuplicate = false;
+        for (int i = 0; i < sb.length; i++) {
+            if (sb[i].toString().contains(reversedHex)) {
+                isDuplicate = true;
+                break;
+            }
         }
-        Log.v("test",sb.toString());
-        Context contxt = this.getApplicationContext();
+        if (!isDuplicate) {
+                sb[indexSB].append(reversedHex);
+        }
+        indexSB++;
         return sb.toString();
     }
+    //Avoir l'info en HEX
     private String toReversedHex(byte[] bytes) {
+        StringBuilder sb2 = new StringBuilder();
         for (int i = 0; i < bytes.length; ++i) {
             if (i > 0) {
-                sb.append(" ");
+                sb2.append(" ");
             }
             int b = bytes[i] & 0xff;
             if (b < 0x10)
-                sb.append('0');
-            sb.append(Integer.toHexString(b));
+                sb2.append('0');
+            sb2.append(Integer.toHexString(b));
         }
-        return sb.toString();
+        return sb2.toString();
     }
-    private void generatePDF() {
+
+    //-----------------------------------------------------------Partie PDF
+
+    private void generatePDF(Cursor cursor2) {
 
         PdfDocument pdfDocument = new PdfDocument();
 
@@ -198,7 +222,7 @@ public class MainActivity extends AppCompatActivity {
         title.setColor(ContextCompat.getColor(this, R.color.purple_200));
 
 
-        canvas.drawText("Etudiants passant l'examen", 300, 100, title);
+        canvas.drawText("Etudiants passant l'examen", 300, 300, title);
 
 
         title.setTypeface(Typeface.defaultFromStyle(Typeface.NORMAL));
@@ -207,20 +231,24 @@ public class MainActivity extends AppCompatActivity {
 
 
         title.setTextAlign(Paint.Align.CENTER);
-        canvas.drawText(String.valueOf(sb), 396, 560, title);
-
-
+        if (cursor2.getCount() == 0) {
+            Toast.makeText(getApplicationContext(), "No data found", Toast.LENGTH_SHORT).show();
+        } else {
+            while (cursor2.moveToNext()) {
+                String nom = cursor2.getString(0);
+                String identifiant = cursor2.getString(1);
+                Boolean present = cursor2.getInt(2) > 0;
+                if(present==true){
+                    canvas.drawText(nom + " est présent(e)",396, 560, title);
+                }
+                Log.d("TAG", "nom: " + nom + ", identifiant: " + identifiant + ", present: " + present);
+            }
+        }
         pdfDocument.finishPage(myPage);
-
-
         File file = new File(Environment.getExternalStorageDirectory(), "Etudiants.pdf");
-
         try {
-
             pdfDocument.writeTo(new FileOutputStream(file));
-
-
-            Toast.makeText(MainActivity.this, "PDF file generated successfully.", Toast.LENGTH_SHORT).show();
+            Toast.makeText(MainActivity.this, "PDF généré !", Toast.LENGTH_SHORT).show();
         } catch (IOException e) {
             e.printStackTrace();
         }
