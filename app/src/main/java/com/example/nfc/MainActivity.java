@@ -12,6 +12,7 @@ import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Paint;
@@ -44,6 +45,7 @@ public class MainActivity extends AppCompatActivity {
     PendingIntent pendingIntent;
     static StringBuilder sb = new StringBuilder();
     final static String TAG = "nfc_test";
+    DBHelper DB;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -55,9 +57,14 @@ public class MainActivity extends AppCompatActivity {
                     Toast.LENGTH_SHORT).show();
             finish();
         }
-
         pendingIntent = PendingIntent.getActivity(this,0,new Intent(this,this.getClass()).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP),0);
-
+        //-----------------------------------------------------------------------------------------------------------!
+        DB = new DBHelper(this);
+        DB.deleteAllData();
+        ajout(DB, "Hayet3", "Hex 67f 65R fG");
+        Cursor cursor = DB.getData();
+        showData(cursor);
+        //-----------------------------------------------------------------------------------------------------------!
         creerpdf = findViewById(R.id.button);
         if (checkPermission()) {
             Toast.makeText(this, "Permission Accordée !", Toast.LENGTH_SHORT).show();
@@ -68,12 +75,45 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 if(sb.length()!=0){
-                   generatePDF();
+                    present(DB);
+                    generatePDF();
+                    Cursor cursor2 = DB.getData();
+                    showData(cursor2);
                 }
             }
         });
     }
 
+    public void showData(Cursor cursor){
+        if (cursor.getCount() == 0) {
+            Toast.makeText(getApplicationContext(), "No data found", Toast.LENGTH_SHORT).show();
+        } else {
+            while (cursor.moveToNext()) {
+                String nom = cursor.getString(0);
+                String identifiant = cursor.getString(1);
+                Boolean present = cursor.getInt(2) > 0;
+                // print the data to the console or logcat
+                Log.d("TAG", "nom: " + nom + ", identifiant: " + identifiant + ", present: " + present);
+            }
+        }
+    }
+
+    public void present(DBHelper DB){
+        boolean result = DB.updateUserPresentByIdentifiant("Hex 67f 65R fG");
+        if (result) {
+            Toast.makeText(this, "Data updated successfully", Toast.LENGTH_SHORT).show();
+        } else {
+            Toast.makeText(this, "Failed to update data2", Toast.LENGTH_SHORT).show();
+        }
+    }
+    public void ajout(DBHelper DB,String nom, String identifiant){
+        Boolean isUpdated = DB.insertuserdata(nom, identifiant, false);
+        if (isUpdated) {
+            Toast.makeText(getApplicationContext(), "Data updated successfully", Toast.LENGTH_SHORT).show();
+        } else {
+            Toast.makeText(getApplicationContext(), "Failed to update data", Toast.LENGTH_SHORT).show();
+        }
+    }
     @Override
     protected void onResume() {
         super.onResume();
