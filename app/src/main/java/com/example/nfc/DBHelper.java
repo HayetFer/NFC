@@ -76,6 +76,19 @@ public class DBHelper extends SQLiteOpenHelper {
             return false;
         }
     }
+    public boolean updateUserPresentByIdentifiant2(String identifiant) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        ContentValues contentValues = new ContentValues();
+        contentValues.put("present", false);
+        int rowsUpdated = db.update("Userdetails", contentValues, "identifiant = ?", new String[] { identifiant });
+        if (rowsUpdated > 0) {
+            Log.d("TAG", "Data updated successfully");
+            return true;
+        } else {
+            Log.d("TAG", "Failed to update data");
+            return false;
+        }
+    }
     public void deleteAllData() {
         SQLiteDatabase db = this.getWritableDatabase();
         db.execSQL("DELETE FROM Userdetails");

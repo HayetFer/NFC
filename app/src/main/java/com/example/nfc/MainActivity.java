@@ -14,8 +14,10 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Paint;
+import android.graphics.Rect;
 import android.graphics.Typeface;
 import android.graphics.pdf.PdfDocument;
 import android.nfc.NfcAdapter;
@@ -25,13 +27,18 @@ import android.nfc.tech.MifareUltralight;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Environment;
+import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.EditText;
+import android.widget.TextView;
 import android.widget.Toast;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
@@ -40,17 +47,19 @@ public class MainActivity extends AppCompatActivity {
     Button creerpdf;
     int pageHeight = 1120;
     int pagewidth = 792;
-    //Bitmap bmp, scaledbmp;
     NfcAdapter nfcAdapter;
     PendingIntent pendingIntent;
     static StringBuilder[] sb = new StringBuilder[400];
     static int indexSB;
+    static int y;
     final static String TAG = "nfc_test";
     DBHelper DB;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        TextView myTextView = findViewById(R.id.textView);
+        myTextView.setTextSize(50);
         //---------------------------------------------------Partie NFC
         //Initialiser les nfc
         indexSB=0;
@@ -70,27 +79,44 @@ public class MainActivity extends AppCompatActivity {
         DB.deleteAllData();
         //----------------------------------AJOUT DES ELEVES
         ajout(DB, "Hayet Ferahi", "04 34 59 aa 7e 67 80");
+        ajout(DB, "Thomas Desert", "04 58 1e 92 81 67 80");
         Cursor cursor = DB.getData();
         showData(cursor);
         //-----------------------------------------------------------------------------------------------------------!Partie PDF
+        y=260;
         creerpdf = findViewById(R.id.button);
         if (checkPermission()) {
             Toast.makeText(this, "Permission Accordée !", Toast.LENGTH_SHORT).show();
         } else {
             requestPermission();
         }
-
+        Button reset=findViewById(R.id.reset);
+        reset.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                for(int i = 0 ;i< sb.length && sb[i].length() > 0; i++){
+                    reset(sb[i].toString());
+                    sb[i]= new StringBuilder();
+                }
+            }
+        });
         creerpdf.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 //Mettre présent à tous ceux qui ont étés scannés
                 if(sb.length!=0){
                     for(int i = 0 ;i< sb.length && sb[i].length() > 0; i++){
-                        present(DB, sb[i].toString());
+                        Log.v("test " , sb[i].toString());
                     }
-                    Cursor cursor2 = DB.getData();
-                    generatePDF(cursor2);
-                    showData(cursor2);
+                    EditText myEditText = (EditText) findViewById(R.id.promo);
+                    String promo = myEditText.getText().toString();
+                    EditText myEditText2 = (EditText) findViewById(R.id.exam);
+                    String exam = myEditText2.getText().toString();
+                    if (!TextUtils.isEmpty(promo.trim()) && !TextUtils.isEmpty(exam.trim()) ) {
+                        Cursor cursor2 = DB.getData();
+                        generatePDF(cursor2, promo, exam);
+                        showData(cursor2);
+                    }
                 }
             }
         });
@@ -112,6 +138,14 @@ public class MainActivity extends AppCompatActivity {
     //Mettre présent à vrai avec l'identifiant
     public void present(DBHelper DB, String identifiant){
         boolean result = DB.updateUserPresentByIdentifiant(identifiant);
+        if (result) {
+            Toast.makeText(this, "Data updated successfully", Toast.LENGTH_SHORT).show();
+        } else {
+            Toast.makeText(this, "Failed to update data", Toast.LENGTH_SHORT).show();
+        }
+    }
+    public void reset(String identifiant){
+        boolean result = DB.updateUserPresentByIdentifiant2(identifiant);
         if (result) {
             Toast.makeText(this, "Data updated successfully", Toast.LENGTH_SHORT).show();
         } else {
@@ -176,6 +210,7 @@ public class MainActivity extends AppCompatActivity {
         if (!isDuplicate) {
                 sb[indexSB].append(reversedHex);
         }
+        present(DB, sb[indexSB].toString());
         indexSB++;
         return sb.toString();
     }
@@ -196,41 +231,44 @@ public class MainActivity extends AppCompatActivity {
 
     //-----------------------------------------------------------Partie PDF
 
-    private void generatePDF(Cursor cursor2) {
+    private void generatePDF(Cursor cursor2, String prom, String exam) {
+        //-----------------Obtenir la date
+        LocalDate currentDate = null;
+        currentDate = LocalDate.now();
+        // Formater la date
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
+        String formattedDate = currentDate.format(formatter);
+
+        //-------------------Créer le pdf
         PdfDocument pdfDocument = new PdfDocument();
-
 
         Paint paint = new Paint();
         Paint title = new Paint();
 
-
-        PdfDocument.PageInfo mypageInfo = new PdfDocument.PageInfo.Builder(pagewidth, pageHeight, 1).create();
-
-
+        int currentPage = 1; // initialize the current page number
+        PdfDocument.PageInfo mypageInfo = new PdfDocument.PageInfo.Builder(pagewidth, pageHeight, currentPage).create();
         PdfDocument.Page myPage = pdfDocument.startPage(mypageInfo);
-
-
         Canvas canvas = myPage.getCanvas();
 
-
         title.setTypeface(Typeface.create(Typeface.DEFAULT, Typeface.NORMAL));
+        title.setTextSize(20);
+        title.setColor(ContextCompat.getColor(this, R.color.black));
+        // Load the image from the resources
+        Bitmap image = BitmapFactory.decodeResource(getResources(), R.drawable.universite);
 
-        title.setTextSize(15);
-
-
-        title.setColor(ContextCompat.getColor(this, R.color.purple_200));
-
-
-        canvas.drawText("Etudiants passant l'examen", 300, 300, title);
+        // Draw the image on the canvas
+        canvas.drawBitmap(image, null, new Rect(0, 0, 100, 100), null);
+        canvas.drawText("Etudiants passant l'examen de " + exam, 150, 50, title);
+        canvas.drawText("Etudiants de : " + prom + " ", 150, 70, title);
+        canvas.drawText("Date de l'épreuve : " + formattedDate + " ", 150, 90, title);
 
 
         title.setTypeface(Typeface.defaultFromStyle(Typeface.NORMAL));
-        title.setColor(ContextCompat.getColor(this, R.color.purple_200));
+        title.setColor(ContextCompat.getColor(this, R.color.black));
         title.setTextSize(15);
-
-
         title.setTextAlign(Paint.Align.CENTER);
+
         if (cursor2.getCount() == 0) {
             Toast.makeText(getApplicationContext(), "No data found", Toast.LENGTH_SHORT).show();
         } else {
@@ -238,22 +276,38 @@ public class MainActivity extends AppCompatActivity {
                 String nom = cursor2.getString(0);
                 String identifiant = cursor2.getString(1);
                 Boolean present = cursor2.getInt(2) > 0;
-                if(present==true){
-                    canvas.drawText(nom + " est présent(e)",396, 560, title);
+                if (present) {
+                    if (y > pageHeight) {
+                        // créer une nouvelle page
+                        pdfDocument.finishPage(myPage);
+                        currentPage++;
+                        mypageInfo = new PdfDocument.PageInfo.Builder(pagewidth, pageHeight, currentPage).create();
+                        myPage = pdfDocument.startPage(mypageInfo);
+                        canvas = myPage.getCanvas();
+                        y = 0; // reset y
+                    }
+                    canvas.drawText(nom + " est présent(e)", 396, y, title);
+                    y += 50; // mettre à jour y
                 }
                 Log.d("TAG", "nom: " + nom + ", identifiant: " + identifiant + ", present: " + present);
             }
         }
+
         pdfDocument.finishPage(myPage);
-        File file = new File(Environment.getExternalStorageDirectory(), "Etudiants.pdf");
+        File file = new File(Environment.getExternalStorageDirectory(), prom + "-" + exam+".pdf");
         try {
             pdfDocument.writeTo(new FileOutputStream(file));
             Toast.makeText(MainActivity.this, "PDF généré !", Toast.LENGTH_SHORT).show();
         } catch (IOException e) {
             e.printStackTrace();
         }
-        pdfDocument.close();
+
     }
+
+
+
+
+
 
     private boolean checkPermission() {
         // checking of permissions.
