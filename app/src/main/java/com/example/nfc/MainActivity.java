@@ -60,6 +60,17 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         TextView myTextView = findViewById(R.id.textView);
         myTextView.setTextSize(50);
+        //---------------------------------------------------Ajouter manuellement
+        Button ajout = (Button) findViewById(R.id.ajouter);
+        ajout.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent intent = new Intent(MainActivity.this, ajoutActivity.class);
+                startActivity(intent);
+            }
+        });
+
+
         //---------------------------------------------------Partie NFC
         //Initialiser les nfc
         indexSB=0;

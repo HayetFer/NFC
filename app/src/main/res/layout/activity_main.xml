@@ -55,16 +55,16 @@
 
     <Button
         android:id="@+id/button"
-        android:layout_width="205dp"
-        android:layout_height="75dp"
+        android:layout_width="163dp"
+        android:layout_height="64dp"
         android:background="@drawable/round_button"
         android:text="Créez le pdf"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.47"
+        app:layout_constraintHorizontal_bias="0.504"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/textView"
-        app:layout_constraintVertical_bias="0.755" />
+        app:layout_constraintVertical_bias="0.706" />
 
     <Button
         android:id="@+id/reset"
@@ -74,9 +74,10 @@
         android:text="Reset les étudiants"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.064"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/button"
-        app:layout_constraintVertical_bias="0.431" />
+        app:layout_constraintVertical_bias="0.585" />
 
     <ImageView
         android:id="@+id/imageView2"
@@ -88,5 +89,21 @@
         app:layout_constraintHorizontal_bias="0.496"
         app:layout_constraintStart_toStartOf="parent"
         app:srcCompat="@drawable/appli" />
+
+    <Button
+        android:id="@+id/ajouter"
+        android:layout_width="90dp"
+        android:layout_height="82dp"
+        android:layout_marginTop="20dp"
+        android:background="@drawable/circlebutton"
+        android:backgroundTint="#E1EC44"
+        android:text="Ajout"
+        app:iconTint="#E66161"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.789"
+        app:layout_constraintStart_toEndOf="@+id/reset"
+        app:layout_constraintTop_toBottomOf="@+id/button"
+        app:layout_constraintVertical_bias="0.463" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
