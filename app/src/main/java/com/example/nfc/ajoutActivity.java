@@ -35,7 +35,13 @@ public class ajoutActivity extends AppCompatActivity {
             finish();
         }
         //créer un intent pour le nfc
-        pendingIntent2 = PendingIntent.getActivity(this, 0, new Intent(this, this.getClass()).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP), 0);
+        pendingIntent2 = PendingIntent.getActivity(
+                this,
+                0,
+                new Intent(this, this.getClass())
+                        .addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP),
+                PendingIntent.FLAG_IMMUTABLE
+        );
         //----------------------------------Base de données
         DB2 = new DBHelper(this);
 

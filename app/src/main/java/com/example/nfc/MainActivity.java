@@ -83,7 +83,13 @@ public class MainActivity extends AppCompatActivity {
             finish();
         }
         //Intent pour le NFC
-        pendingIntent = PendingIntent.getActivity(this,0,new Intent(this,this.getClass()).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP),0);
+        pendingIntent = PendingIntent.getActivity(
+                this,
+                0,
+                new Intent(this, this.getClass())
+                        .addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP),
+                PendingIntent.FLAG_IMMUTABLE
+        );
         //-----------------------------------------------------------------------------------------------------------!Partie BDD
         DB = new DBHelper(this);
         //----------------------------------AJOUT DES ELEVES
