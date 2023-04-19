@@ -52,7 +52,6 @@ public class MainActivity extends AppCompatActivity {
     static StringBuilder[] sb = new StringBuilder[400];
     static int indexSB;
     static int y;
-    final static String TAG = "nfc_test";
     DBHelper DB;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -69,7 +68,6 @@ public class MainActivity extends AppCompatActivity {
                 startActivity(intent);
             }
         });
-
 
         //---------------------------------------------------Partie NFC
         //Initialiser les nfc
@@ -118,10 +116,6 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 //Mettre présent à tous ceux qui ont étés scannés
-                if(sb[0].length()>0){
-                    for(int i = 0 ;i< sb.length && sb[i].length() > 0; i++){
-                        Log.v("test " , sb[i].toString());
-                    }
                     EditText myEditText = (EditText) findViewById(R.id.promo);
                     String promo = myEditText.getText().toString();
                     EditText myEditText2 = (EditText) findViewById(R.id.exam);
@@ -131,12 +125,7 @@ public class MainActivity extends AppCompatActivity {
                         generatePDF(cursor2, promo, exam);
                         showData(cursor2);
                     }
-                }
-                else{
-                    Toast.makeText(getApplicationContext(), "Pas assez de monde!", Toast.LENGTH_SHORT).show();
-                }
             }
-
         });
     }
     //--------------------------------------------Partie BDD
@@ -261,32 +250,40 @@ public class MainActivity extends AppCompatActivity {
         //-------------------Créer le pdf
         PdfDocument pdfDocument = new PdfDocument();
 
-        Paint paint = new Paint();
-        Paint title = new Paint();
+        //présent et absent
+        Paint prst = new Paint();
+        Paint abs = new Paint();
+        Paint enTete = new Paint();
 
         int currentPage = 1; // initialize the current page number
         PdfDocument.PageInfo mypageInfo = new PdfDocument.PageInfo.Builder(pagewidth, pageHeight, currentPage).create();
         PdfDocument.Page myPage = pdfDocument.startPage(mypageInfo);
         Canvas canvas = myPage.getCanvas();
 
-        title.setTypeface(Typeface.create(Typeface.DEFAULT, Typeface.NORMAL));
-        title.setTextSize(20);
-        title.setColor(ContextCompat.getColor(this, R.color.black));
-        // Load the image from the resources
+        // Image
         Bitmap image = BitmapFactory.decodeResource(getResources(), R.drawable.universite);
-
-        // Draw the image on the canvas
         canvas.drawBitmap(image, null, new Rect(0, 0, 100, 100), null);
-        canvas.drawText("Etudiants passant l'examen de " + exam, 150, 50, title);
-        canvas.drawText("Etudiants de : " + prom + " ", 150, 70, title);
-        canvas.drawText("Date de l'épreuve : " + formattedDate + " ", 150, 90, title);
+        canvas.drawText("Etudiants passant l'examen de " + exam, 150, 50, enTete);
+        canvas.drawText("Etudiants de : " + prom + " ", 150, 70, enTete);
+        canvas.drawText("Date de l'épreuve : " + formattedDate + " ", 150, 90, enTete);
 
+        //Texte
+        prst.setTypeface(Typeface.defaultFromStyle(Typeface.NORMAL));
+        prst.setColor(ContextCompat.getColor(this, R.color.green));
+        prst.setTextSize(15);
+        prst.setTextAlign(Paint.Align.CENTER);
 
-        title.setTypeface(Typeface.defaultFromStyle(Typeface.NORMAL));
-        title.setColor(ContextCompat.getColor(this, R.color.black));
-        title.setTextSize(15);
-        title.setTextAlign(Paint.Align.CENTER);
+        abs.setTypeface(Typeface.defaultFromStyle(Typeface.NORMAL));
+        abs.setColor(ContextCompat.getColor(this, R.color.red));
+        abs.setTextSize(15);
+        abs.setTextAlign(Paint.Align.CENTER);
 
+        enTete.setTypeface(Typeface.defaultFromStyle(Typeface.NORMAL));
+        enTete.setColor(ContextCompat.getColor(this, R.color.black));
+        enTete.setTextSize(15);
+        enTete.setTextAlign(Paint.Align.CENTER);
+
+        //générer le pdf
         if (cursor2.getCount() == 0) {
             Toast.makeText(getApplicationContext(), "No data found", Toast.LENGTH_SHORT).show();
         } else {
@@ -294,7 +291,6 @@ public class MainActivity extends AppCompatActivity {
                 String nom = cursor2.getString(0);
                 String identifiant = cursor2.getString(1);
                 Boolean present = cursor2.getInt(2) > 0;
-                if (present) {
                     if (y > pageHeight) {
                         // créer une nouvelle page
                         pdfDocument.finishPage(myPage);
@@ -304,13 +300,18 @@ public class MainActivity extends AppCompatActivity {
                         canvas = myPage.getCanvas();
                         y = 0; // reset y
                     }
-                    canvas.drawText(nom + " est présent(e)", 396, y, title);
+                if (present) {
+                    canvas.drawText("\u2713 " + nom , 376, y, prst);
+                    y += 50; // mettre à jour y
+                }
+                else{
+                    canvas.drawText("\u274C " + nom , 376, y, abs);
                     y += 50; // mettre à jour y
                 }
                 Log.d("TAG", "nom: " + nom + ", identifiant: " + identifiant + ", present: " + present);
             }
         }
-
+    //créer le pdf
         pdfDocument.finishPage(myPage);
         File file = new File(Environment.getExternalStorageDirectory(), prom + "-" + exam+".pdf");
         try {

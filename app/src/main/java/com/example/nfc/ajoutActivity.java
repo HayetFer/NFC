@@ -55,6 +55,7 @@ public class ajoutActivity extends AppCompatActivity {
                 String ajout2 = myEditText.getText().toString();
                 if (!TextUtils.isEmpty(ajout2.trim()) && ajt.length()!=0) {
                     ajout2(DB2,ajout2,ajt.toString());
+                    ajt=new StringBuilder();
                 }
                 else{
                     Toast.makeText(getApplicationContext(), "Pas de nom | identifiant vide", Toast.LENGTH_SHORT).show();
