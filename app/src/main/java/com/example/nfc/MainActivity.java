@@ -104,7 +104,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 //Mettre présent à tous ceux qui ont étés scannés
-                if(sb.length!=0){
+                if(sb[0].length()>0){
                     for(int i = 0 ;i< sb.length && sb[i].length() > 0; i++){
                         Log.v("test " , sb[i].toString());
                     }
@@ -118,7 +118,11 @@ public class MainActivity extends AppCompatActivity {
                         showData(cursor2);
                     }
                 }
+                else{
+                    Toast.makeText(getApplicationContext(), "Pas assez de monde!", Toast.LENGTH_SHORT).show();
+                }
             }
+
         });
     }
     //--------------------------------------------Partie BDD
