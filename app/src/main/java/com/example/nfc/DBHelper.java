@@ -10,6 +10,7 @@ import android.util.Log;
 import androidx.annotation.Nullable;
 
 public class DBHelper extends SQLiteOpenHelper {
+    //----------------------------------Création et initialisation d'une base de données
     public DBHelper(Context context) {
         super(context, "Userdata.db", null, 1);
     }
@@ -23,25 +24,7 @@ public class DBHelper extends SQLiteOpenHelper {
     public void onUpgrade(SQLiteDatabase DB, int i, int i1) {
         DB.execSQL("drop Table if exists Userdetails");
     }
-
-    public Boolean updateuserdata(String nom, String identifiant, String present){
-        SQLiteDatabase DB = this.getWritableDatabase();
-        ContentValues contentValues = new ContentValues();
-        contentValues.put("nom", nom);
-        contentValues.put("Identifiant", identifiant);
-        contentValues.put("present", present);
-        Cursor cursor = DB.rawQuery("Select * from Userdetails where identifiant = ?", new String[] {identifiant});
-        if(cursor.getCount()>0){
-            long resultat = DB.update("Userdetails", contentValues,"identifiant=?", new String[] {identifiant});
-            if(resultat==-1){
-                return false;
-            }
-            else {
-                return true;
-            }
-        }
-        else return false;
-    }
+    //insérer des utilisateurs
     public Boolean insertuserdata(String nom, String identifiant, Boolean present){
         SQLiteDatabase DB = this.getWritableDatabase();
         ContentValues contentValues = new ContentValues();
@@ -57,6 +40,7 @@ public class DBHelper extends SQLiteOpenHelper {
             return true;
         }
     }
+    //Regarder si l'utilisateur est déja utilisé
     public boolean checkIfExists(String identifiant) {
         SQLiteDatabase db = this.getWritableDatabase();
         Cursor cursor = db.rawQuery("SELECT * FROM Userdetails WHERE identifiant = ?", new String[]{identifiant});
@@ -64,11 +48,13 @@ public class DBHelper extends SQLiteOpenHelper {
         cursor.close();
         return exists;
     }
+    //retourner les données de la bdd
     public Cursor getData() {
         SQLiteDatabase DB = this.getWritableDatabase();
         Cursor cursor = DB.rawQuery("Select * from Userdetails", null);
         return cursor;
     }
+    //Mettre l'utilisateur présent
     public boolean updateUserPresentByIdentifiant(String identifiant) {
         SQLiteDatabase db = this.getWritableDatabase();
         ContentValues contentValues = new ContentValues();
@@ -82,6 +68,7 @@ public class DBHelper extends SQLiteOpenHelper {
             return false;
         }
     }
+    //Mettre l'utilisateur absent
     public boolean updateUserPresentByIdentifiant2(String identifiant) {
         SQLiteDatabase db = this.getWritableDatabase();
         ContentValues contentValues = new ContentValues();
@@ -95,9 +82,4 @@ public class DBHelper extends SQLiteOpenHelper {
             return false;
         }
     }
-    public void deleteAllData() {
-        SQLiteDatabase db = this.getWritableDatabase();
-        db.execSQL("DELETE FROM Userdetails");
-    }
-
 }

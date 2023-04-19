@@ -42,7 +42,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
-
+    //Classe qui génère un pdf, avec les élèves présent grâce à un capteur NFC
     private static final int PERMISSION_REQUEST_CODE = 200;
     Button creerpdf;
     int pageHeight = 1120;
@@ -59,7 +59,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         TextView myTextView = findViewById(R.id.textView);
         myTextView.setTextSize(50);
-        //---------------------------------------------------Ajouter manuellement
+        //---------------------------------------------------Ajouter manuellement grâce à une autre activité
         Button ajout = (Button) findViewById(R.id.ajouter);
         ajout.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -82,15 +82,15 @@ public class MainActivity extends AppCompatActivity {
                     Toast.LENGTH_SHORT).show();
             finish();
         }
+        //Intent pour le NFC
         pendingIntent = PendingIntent.getActivity(this,0,new Intent(this,this.getClass()).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP),0);
         //-----------------------------------------------------------------------------------------------------------!Partie BDD
         DB = new DBHelper(this);
-        //DB.deleteAllData();
         //----------------------------------AJOUT DES ELEVES
         //eviter d'ajouter à chaque retour à main activity
         if(!DB.checkIfExists("04 34 59 aa 7e 67 80")){
             ajout(DB, "Hayet Ferahi", "04 34 59 aa 7e 67 80");
-            //ajout(DB, "Thomas Desert", "04 58 1e 92 81 67 80");
+            ajout(DB, "Thomas Desert", "04 58 1e 92 81 67 80");
         }
         Cursor cursor = DB.getData();
         showData(cursor);
@@ -102,12 +102,13 @@ public class MainActivity extends AppCompatActivity {
         } else {
             requestPermission();
         }
+        //Remettre tous les élèves à présent = faux
         Button reset=findViewById(R.id.reset);
         reset.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 for(int i = 0 ;i< sb.length && sb[i].length() > 0; i++){
-                    reset(sb[i].toString());
+                    reset();
                     sb[i]= new StringBuilder();
                 }
             }
@@ -120,6 +121,7 @@ public class MainActivity extends AppCompatActivity {
                     String promo = myEditText.getText().toString();
                     EditText myEditText2 = (EditText) findViewById(R.id.exam);
                     String exam = myEditText2.getText().toString();
+                    //Creation d'un pdf avec le nom de l'exam, la promo et la bdd
                     if (!TextUtils.isEmpty(promo.trim()) && !TextUtils.isEmpty(exam.trim()) ) {
                         Cursor cursor2 = DB.getData();
                         generatePDF(cursor2, promo, exam);
@@ -129,6 +131,7 @@ public class MainActivity extends AppCompatActivity {
         });
     }
     //--------------------------------------------Partie BDD
+    //Afficher les données pour debugger
     public void showData(Cursor cursor){
         if (cursor.getCount() == 0) {
             Toast.makeText(getApplicationContext(), "No data found", Toast.LENGTH_SHORT).show();
@@ -137,7 +140,6 @@ public class MainActivity extends AppCompatActivity {
                 String nom = cursor.getString(0);
                 String identifiant = cursor.getString(1);
                 Boolean present = cursor.getInt(2) > 0;
-                // print the data to the console or logcat
                 Log.d("TAG", "nom: " + nom + ", identifiant: " + identifiant + ", present: " + present);
             }
         }
@@ -151,12 +153,17 @@ public class MainActivity extends AppCompatActivity {
             Toast.makeText(this, "Failed to update data", Toast.LENGTH_SHORT).show();
         }
     }
-    public void reset(String identifiant){
-        boolean result = DB.updateUserPresentByIdentifiant2(identifiant);
-        if (result) {
-            Toast.makeText(this, "Data updated successfully", Toast.LENGTH_SHORT).show();
+    //On ne supprime pas les élèves de la bdd, on les mets seulements tous à non présent pour un futur examen
+    public void reset() {
+        DBHelper DB3 = new DBHelper(this);
+        Cursor cursor3= DB3.getData();
+        if (cursor3.getCount() == 0) {
+            Toast.makeText(getApplicationContext(), "No data found", Toast.LENGTH_SHORT).show();
         } else {
-            Toast.makeText(this, "Failed to update data", Toast.LENGTH_SHORT).show();
+            while (cursor3.moveToNext()) {
+                String identifiant = cursor3.getString(1);
+                DB.updateUserPresentByIdentifiant2(identifiant);
+            }
         }
     }
     //Ajouter des élèves à la bdd
@@ -173,11 +180,9 @@ public class MainActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         assert nfcAdapter != null;
-        //nfcAdapter.enableForegroundDispatch(context,pendingIntent,
-        //                                    intentFilterArray,
-        //                                    techListsArray)
         nfcAdapter.enableForegroundDispatch(this,pendingIntent,null,null);
     }
+    //En pause : On arrête le NFC, en arrière plan : il reste activé
     protected void onPause() {
         super.onPause();
         //Onpause stop listening
@@ -185,13 +190,14 @@ public class MainActivity extends AppCompatActivity {
             nfcAdapter.disableForegroundDispatch(this);
         }
     }
+
     @Override
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
         setIntent(intent);
         resolveIntent(intent);
     }
-
+    //Detecter le NFC
     private void resolveIntent(Intent intent) {
         String action = intent.getAction();
         if (NfcAdapter.ACTION_TAG_DISCOVERED.equals(action)
@@ -250,12 +256,12 @@ public class MainActivity extends AppCompatActivity {
         //-------------------Créer le pdf
         PdfDocument pdfDocument = new PdfDocument();
 
-        //présent et absent
+        //Textes
         Paint prst = new Paint();
         Paint abs = new Paint();
         Paint enTete = new Paint();
 
-        int currentPage = 1; // initialize the current page number
+        int currentPage = 1; // initialiser la page courrante
         PdfDocument.PageInfo mypageInfo = new PdfDocument.PageInfo.Builder(pagewidth, pageHeight, currentPage).create();
         PdfDocument.Page myPage = pdfDocument.startPage(mypageInfo);
         Canvas canvas = myPage.getCanvas();
@@ -267,7 +273,7 @@ public class MainActivity extends AppCompatActivity {
         canvas.drawText("Etudiants de : " + prom + " ", 150, 70, enTete);
         canvas.drawText("Date de l'épreuve : " + formattedDate + " ", 150, 90, enTete);
 
-        //Texte
+        //Textes différents : présents, absents et titre
         prst.setTypeface(Typeface.defaultFromStyle(Typeface.NORMAL));
         prst.setColor(ContextCompat.getColor(this, R.color.green));
         prst.setTextSize(15);
@@ -288,11 +294,12 @@ public class MainActivity extends AppCompatActivity {
             Toast.makeText(getApplicationContext(), "No data found", Toast.LENGTH_SHORT).show();
         } else {
             while (cursor2.moveToNext()) {
+                //Parcourir la base de données avec le curseur
                 String nom = cursor2.getString(0);
                 String identifiant = cursor2.getString(1);
                 Boolean present = cursor2.getInt(2) > 0;
                     if (y > pageHeight) {
-                        // créer une nouvelle page
+                        // créer une nouvelle page quad y > la taille de la page
                         pdfDocument.finishPage(myPage);
                         currentPage++;
                         mypageInfo = new PdfDocument.PageInfo.Builder(pagewidth, pageHeight, currentPage).create();
@@ -300,6 +307,7 @@ public class MainActivity extends AppCompatActivity {
                         canvas = myPage.getCanvas();
                         y = 0; // reset y
                     }
+                    //rouge si absent, vert sinon
                 if (present) {
                     canvas.drawText("\u2713 " + nom , 376, y, prst);
                     y += 50; // mettre à jour y
@@ -311,7 +319,7 @@ public class MainActivity extends AppCompatActivity {
                 Log.d("TAG", "nom: " + nom + ", identifiant: " + identifiant + ", present: " + present);
             }
         }
-    //créer le pdf
+        //créer le pdf
         pdfDocument.finishPage(myPage);
         File file = new File(Environment.getExternalStorageDirectory(), prom + "-" + exam+".pdf");
         try {
@@ -323,20 +331,14 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
-
-
-
-
-
+    //Permissions pour le pdf
     private boolean checkPermission() {
-        // checking of permissions.
         int permission1 = ContextCompat.checkSelfPermission(getApplicationContext(), WRITE_EXTERNAL_STORAGE);
         int permission2 = ContextCompat.checkSelfPermission(getApplicationContext(), READ_EXTERNAL_STORAGE);
         return permission1 == PackageManager.PERMISSION_GRANTED && permission2 == PackageManager.PERMISSION_GRANTED;
     }
 
     private void requestPermission() {
-        // requesting permissions if not provided.
         ActivityCompat.requestPermissions(this, new String[]{WRITE_EXTERNAL_STORAGE, READ_EXTERNAL_STORAGE}, PERMISSION_REQUEST_CODE);
     }
 
@@ -346,15 +348,13 @@ public class MainActivity extends AppCompatActivity {
         if (requestCode == PERMISSION_REQUEST_CODE) {
             if (grantResults.length > 0) {
 
-                // after requesting permissions we are showing
-                // users a toast message of permission granted.
                 boolean writeStorage = grantResults[0] == PackageManager.PERMISSION_GRANTED;
                 boolean readStorage = grantResults[1] == PackageManager.PERMISSION_GRANTED;
 
                 if (writeStorage && readStorage) {
-                    Toast.makeText(this, "Permission Granted..", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(this, "Permission Obtenue", Toast.LENGTH_SHORT).show();
                 } else {
-                    Toast.makeText(this, "Permission Denied.", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(this, "Permission Non obtenue", Toast.LENGTH_SHORT).show();
                     finish();
                 }
             }

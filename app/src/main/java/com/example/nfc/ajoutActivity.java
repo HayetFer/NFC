@@ -16,7 +16,7 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 
 public class ajoutActivity extends AppCompatActivity {
-    
+    //Deuxième activité pour l'ajout manuel dans la BDD
     DBHelper DB2;
     StringBuilder ajt;
     NfcAdapter nfcAdapter2;
@@ -27,7 +27,6 @@ public class ajoutActivity extends AppCompatActivity {
         setContentView(R.layout.ajout);
         //----------------------------------NFC
         ajt=new StringBuilder();
-        //----------------------------------Base de données
         //Verifier que le capteur NFC marche
         nfcAdapter2 = NfcAdapter.getDefaultAdapter(this);
         if (nfcAdapter2 == null){
@@ -35,10 +34,12 @@ public class ajoutActivity extends AppCompatActivity {
                     Toast.LENGTH_SHORT).show();
             finish();
         }
+        //créer un intent pour le nfc
         pendingIntent2 = PendingIntent.getActivity(this, 0, new Intent(this, this.getClass()).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP), 0);
+        //----------------------------------Base de données
         DB2 = new DBHelper(this);
-        
-        // retourner en arrière
+
+        // ---------------------------------retourner en arrière
         Button retour = (Button) findViewById(R.id.retour);
         retour.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -47,6 +48,8 @@ public class ajoutActivity extends AppCompatActivity {
                 startActivity(intent);
             }
         });
+        //Ajout d'un utilisateur à la main dans la bdd (à cause d'un oubli par exemple), mais il est préférable d'avoir déja tout inséré au préalable
+        //L'utilisateur présente une carte et on note un nom, puis on ajoute l'élève
         Button ajout2 = (Button) findViewById(R.id.ajout2);
         ajout2.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -58,11 +61,12 @@ public class ajoutActivity extends AppCompatActivity {
                     ajt=new StringBuilder();
                 }
                 else{
-                    Toast.makeText(getApplicationContext(), "Pas de nom | identifiant vide", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(getApplicationContext(), "Pas de nom || Identifiant vide", Toast.LENGTH_SHORT).show();
                 }
             }
         });
     }
+    //--------------------------------------------------------------ajout dans la bdd
     public void ajout2(DBHelper DB2,String nom, String identifiant){
         Boolean isUpdated = DB2.insertuserdata(nom, identifiant, false);
         if (isUpdated) {
@@ -73,13 +77,11 @@ public class ajoutActivity extends AppCompatActivity {
     }
     
     //--------------------------------------------------------------Partie NFC
+    //En pause : On arrête le NFC, en arrière plan : il reste activé
     @Override
     protected void onResume() {
         super.onResume();
         assert nfcAdapter2 != null;
-        //nfcAdapter2.enableForegroundDispatch(context,pendingIntent2,
-        //                                    intentFilterArray,
-        //                                    techListsArray)
         nfcAdapter2.enableForegroundDispatch(this,pendingIntent2,null,null);
     }
     protected void onPause() {
@@ -95,7 +97,7 @@ public class ajoutActivity extends AppCompatActivity {
         setIntent(intent);
         resolveIntent(intent);
     }
-
+    //Detecter le NFC
     private void resolveIntent(Intent intent) {
         String action = intent.getAction();
         if (NfcAdapter.ACTION_TAG_DISCOVERED.equals(action)
@@ -103,14 +105,14 @@ public class ajoutActivity extends AppCompatActivity {
                 || NfcAdapter.ACTION_NDEF_DISCOVERED.equals(action)) {
             Tag tag = (Tag) intent.getParcelableExtra(NfcAdapter.EXTRA_TAG);
             assert tag != null;
-            //byte[] payload = detectTagData(tag).getBytes();
             detectTagData(tag);
         }
     }
-    //Ajouter dans un tableau les identifiants présents
+    //Ajouter les identifiants présents
     private String detectTagData(Tag tag) {
         byte[] id = tag.getId();
         String reversedHex = toReversedHex(id);
+        //on ne veht pas de duplication
         boolean isDuplicate = false;
         for (int i = 0; i < ajt.length(); i++) {
             if (ajt.toString().contains(reversedHex)) {
