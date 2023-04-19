@@ -57,7 +57,13 @@ public class DBHelper extends SQLiteOpenHelper {
             return true;
         }
     }
-
+    public boolean checkIfExists(String identifiant) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        Cursor cursor = db.rawQuery("SELECT * FROM Userdetails WHERE identifiant = ?", new String[]{identifiant});
+        boolean exists = (cursor.getCount() > 0);
+        cursor.close();
+        return exists;
+    }
     public Cursor getData() {
         SQLiteDatabase DB = this.getWritableDatabase();
         Cursor cursor = DB.rawQuery("Select * from Userdetails", null);

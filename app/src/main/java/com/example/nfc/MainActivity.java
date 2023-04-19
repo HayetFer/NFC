@@ -87,10 +87,13 @@ public class MainActivity extends AppCompatActivity {
         pendingIntent = PendingIntent.getActivity(this,0,new Intent(this,this.getClass()).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP),0);
         //-----------------------------------------------------------------------------------------------------------!Partie BDD
         DB = new DBHelper(this);
-        DB.deleteAllData();
+        //DB.deleteAllData();
         //----------------------------------AJOUT DES ELEVES
-        ajout(DB, "Hayet Ferahi", "04 34 59 aa 7e 67 80");
-        ajout(DB, "Thomas Desert", "04 58 1e 92 81 67 80");
+        //eviter d'ajouter à chaque retour à main activity
+        if(!DB.checkIfExists("04 34 59 aa 7e 67 80")){
+            ajout(DB, "Hayet Ferahi", "04 34 59 aa 7e 67 80");
+            //ajout(DB, "Thomas Desert", "04 58 1e 92 81 67 80");
+        }
         Cursor cursor = DB.getData();
         showData(cursor);
         //-----------------------------------------------------------------------------------------------------------!Partie PDF
