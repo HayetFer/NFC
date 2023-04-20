@@ -83,22 +83,14 @@ public class MainActivity extends AppCompatActivity {
             finish();
         }
         //Intent pour le NFC
-        pendingIntent = PendingIntent.getActivity(
-                this,
-                0,
-                new Intent(this, this.getClass())
-                        .addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP),
-                PendingIntent.FLAG_IMMUTABLE
-        );
+        pendingIntent = PendingIntent.getActivity(this,0,new Intent(this,this.getClass()).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP),0);
         //-----------------------------------------------------------------------------------------------------------!Partie BDD
         DB = new DBHelper(this);
         //----------------------------------AJOUT DES ELEVES
-        //eviter d'ajouter à chaque retour à main activity
-        if(!DB.checkIfExists("04 34 59 aa 7e 67 80")){
-            ajout(DB, "Hayet Ferahi", "04 34 59 aa 7e 67 80");
-            ajout(DB, "Thomas Desert", "04 58 1e 92 81 67 80");
-        }
+        ajout(DB, "Hayet Ferahi", "04 34 59 aa 7e 67 80");
+        ajout(DB, "Thomas Desert", "04 58 1e 92 81 67 80");
         Cursor cursor = DB.getData();
+        //Bien vérifier qu'ils sont présents et obtenir leurs données
         showData(cursor);
         //-----------------------------------------------------------------------------------------------------------!Partie PDF
         y=260;
@@ -114,9 +106,10 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 for(int i = 0 ;i< sb.length && sb[i].length() > 0; i++){
-                    reset();
                     sb[i]= new StringBuilder();
                 }
+                Cursor cursor3 = DB.getData();
+                reset(DB, cursor3);
             }
         });
         creerpdf.setOnClickListener(new View.OnClickListener() {
@@ -160,25 +153,28 @@ public class MainActivity extends AppCompatActivity {
         }
     }
     //On ne supprime pas les élèves de la bdd, on les mets seulements tous à non présent pour un futur examen
-    public void reset() {
-        DBHelper DB3 = new DBHelper(this);
-        Cursor cursor3= DB3.getData();
+    public void reset(DBHelper DB3, Cursor cursor3) {
         if (cursor3.getCount() == 0) {
             Toast.makeText(getApplicationContext(), "No data found", Toast.LENGTH_SHORT).show();
         } else {
             while (cursor3.moveToNext()) {
                 String identifiant = cursor3.getString(1);
+                String nom = cursor3.getString(0);
                 DB.updateUserPresentByIdentifiant2(identifiant);
+                Toast.makeText(getApplicationContext(), "Remis " + nom + "à non présent", Toast.LENGTH_SHORT).show();
             }
         }
     }
     //Ajouter des élèves à la bdd
     public void ajout(DBHelper DB,String nom, String identifiant){
-        Boolean isUpdated = DB.insertuserdata(nom, identifiant, false);
-        if (isUpdated) {
-            Toast.makeText(getApplicationContext(), "Data updated successfully", Toast.LENGTH_SHORT).show();
-        } else {
-            Toast.makeText(getApplicationContext(), "Failed to add data", Toast.LENGTH_SHORT).show();
+        //Eviter d'ajouter les élèves à chaque retour à MainActivity
+        if(!DB.checkIfExists(identifiant)){
+            Boolean isUpdated = DB.insertuserdata(nom, identifiant, false);
+            if (isUpdated) {
+                Toast.makeText(getApplicationContext(), "Data updated successfully", Toast.LENGTH_SHORT).show();
+            } else {
+                Toast.makeText(getApplicationContext(), "Failed to add data", Toast.LENGTH_SHORT).show();
+            }
         }
     }
     //----------------------------------------------------NFC Lecture
@@ -229,6 +225,7 @@ public class MainActivity extends AppCompatActivity {
         if (!isDuplicate) {
                 sb[indexSB].append(reversedHex);
         }
+        Log.v("test " , sb[indexSB].toString());
         present(DB, sb[indexSB].toString());
         indexSB++;
         return sb.toString();
@@ -328,6 +325,7 @@ public class MainActivity extends AppCompatActivity {
         //créer le pdf
         pdfDocument.finishPage(myPage);
         File file = new File(Environment.getExternalStorageDirectory(), prom + "-" + exam+".pdf");
+        y=250;
         try {
             pdfDocument.writeTo(new FileOutputStream(file));
             Toast.makeText(MainActivity.this, "PDF généré !", Toast.LENGTH_SHORT).show();
