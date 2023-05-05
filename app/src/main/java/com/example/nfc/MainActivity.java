@@ -315,10 +315,7 @@ public class MainActivity extends AppCompatActivity {
                     canvas.drawText("\u2713 " + nom , 376, y, prst);
                     y += 50; // mettre à jour y
                 }
-                else{
-                    canvas.drawText("\u274C " + nom , 376, y, abs);
-                    y += 50; // mettre à jour y
-                }
+                
                 Log.d("TAG", "nom: " + nom + ", identifiant: " + identifiant + ", present: " + present);
             }
         }
